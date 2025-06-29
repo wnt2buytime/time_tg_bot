@@ -1,45 +1,29 @@
 #!/bin/bash
 
-# Скрипт для деплоя Telegram Time Bot на сервер
+# Скрипт для деплоя Telegram Time Bot на сервер (без sudo)
 
-echo "🚀 Начинаем деплой Telegram Time Bot..."
+echo "🚀 Начинаем деплой Telegram Time Bot (без sudo)..."
 
-# Определяем тип системы
-if [ -f /etc/debian_version ]; then
-    # Debian/Ubuntu
-    echo "📦 Обнаружена Debian/Ubuntu система"
-    PKG_MANAGER="apt"
-    PYTHON_PKG="python3"
-    PIP_PKG="python3-pip"
-elif [ -f /etc/redhat-release ]; then
-    # CentOS/RHEL/Fedora
-    echo "📦 Обнаружена CentOS/RHEL/Fedora система"
-    PKG_MANAGER="yum"
-    PYTHON_PKG="python3"
-    PIP_PKG="python3-pip"
-else
-    echo "❌ Неподдерживаемая система. Установите Python 3.8+ вручную"
+# Проверяем наличие Python3
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Python3 не найден!"
+    echo ""
+    echo "📋 Ручная установка Python3:"
+    echo "1. Ubuntu/Debian: sudo apt update && sudo apt install python3 python3-pip"
+    echo "2. CentOS/RHEL: sudo yum install python3 python3-pip"
+    echo "3. Или скачайте с python.org"
     exit 1
 fi
 
-# Обновляем пакеты
-echo "🔄 Обновляем пакеты..."
-sudo $PKG_MANAGER update -y
-
-# Проверяем и устанавливаем Python3
-if ! command -v python3 &> /dev/null; then
-    echo "📦 Устанавливаем Python3..."
-    sudo $PKG_MANAGER install -y $PYTHON_PKG
-else
-    echo "✅ Python3 уже установлен"
-fi
-
-# Проверяем и устанавливаем pip3
+# Проверяем наличие pip3
 if ! command -v pip3 &> /dev/null; then
-    echo "📦 Устанавливаем pip3..."
-    sudo $PKG_MANAGER install -y $PIP_PKG
-else
-    echo "✅ pip3 уже установлен"
+    echo "❌ pip3 не найден!"
+    echo ""
+    echo "📋 Ручная установка pip3:"
+    echo "1. Ubuntu/Debian: sudo apt install python3-pip"
+    echo "2. CentOS/RHEL: sudo yum install python3-pip"
+    echo "3. Или: curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py --user"
+    exit 1
 fi
 
 # Проверяем версию Python
@@ -84,8 +68,11 @@ echo "🔧 Для запуска бота используйте:"
 echo "   source venv/bin/activate"
 echo "   python main.py"
 echo ""
-echo "🔄 Для настройки автозапуска:"
+echo "🔄 Для настройки автозапуска (требует sudo):"
 echo "   1. Отредактируйте time_bot.service"
 echo "   2. Скопируйте в /etc/systemd/system/"
 echo "   3. Выполните: sudo systemctl enable time_bot"
-echo "   4. Запустите: sudo systemctl start time_bot" 
+echo "   4. Запустите: sudo systemctl start time_bot"
+echo ""
+echo "🔄 Альтернативный автозапуск (без sudo):"
+echo "   Добавьте в crontab: @reboot cd /path/to/bot && ./run.sh" 
