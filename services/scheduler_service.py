@@ -11,7 +11,7 @@ from utils.time_utils import calculate_time_left, format_time_left, is_date_pass
 logger = logging.getLogger(__name__)
 
 # Глобальная переменная для хранения планировщика
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler(timezone="Europe/Moscow")  # Используем московское время
 application = None
 
 
@@ -24,7 +24,7 @@ def set_application(app):
 def start_scheduler():
     """Запустить планировщик"""
     scheduler.start()
-    logger.info("Планировщик уведомлений запущен")
+    logger.info("Планировщик уведомлений запущен (Europe/Moscow)")
 
 
 def stop_scheduler():
@@ -39,8 +39,8 @@ def setup_notification_job(user_id: int, hour: int, minute: int) -> None:
     
     Args:
         user_id: ID пользователя
-        hour: час уведомления
-        minute: минута уведомления
+        hour: час уведомления (в московском времени)
+        minute: минута уведомления (в московском времени)
     """
     job_id = f"notification_{user_id}"
     
@@ -50,16 +50,16 @@ def setup_notification_job(user_id: int, hour: int, minute: int) -> None:
     except:
         pass
     
-    # Добавляем новую задачу
+    # Добавляем новую задачу с московским временем
     scheduler.add_job(
         send_notification,
-        CronTrigger(hour=hour, minute=minute),
+        CronTrigger(hour=hour, minute=minute, timezone="Europe/Moscow"),
         id=job_id,
         args=[user_id],
         replace_existing=True
     )
     
-    logger.info(f"Уведомления настроены для пользователя {user_id} на время {hour:02d}:{minute:02d}")
+    logger.info(f"Уведомления настроены для пользователя {user_id} на время {hour:02d}:{minute:02d} (MSK)")
 
 
 def remove_notification_job(user_id: int) -> None:
@@ -93,10 +93,14 @@ async def send_notification(user_id: int) -> None:
         
         target_date = get_user_date(user_id)
         
-        if is_date_passed(target_date):
+        if target_date and is_date_passed(target_date):
             # Дата уже наступила, удаляем задачу
             logger.info(f"Дата для пользователя {user_id} уже наступила, удаляем уведомления")
             remove_notification_job(user_id)
+            return
+        
+        if not target_date:
+            logger.warning(f"Дата не найдена для пользователя {user_id}")
             return
         
         # Вычисляем разность
@@ -115,4 +119,24 @@ async def send_notification(user_id: int) -> None:
             logger.error(f"Application или bot недоступен для отправки уведомления пользователю {user_id}")
         
     except Exception as e:
-        logger.error(f"Ошибка при отправке уведомления пользователю {user_id}: {e}") 
+        logger.error(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
+
+
+def get_server_timezone_info() -> str:
+    """Получить информацию о часовом поясе сервера"""
+    try:
+        import subprocess
+        result = subprocess.run(['timedatectl', 'show', '--property=Timezone', '--value'], 
+                              capture_output=True, text=True)
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except:
+        pass
+    
+    try:
+        import os
+        return os.environ.get('TZ', 'Unknown')
+    except:
+        pass
+    
+    return 'Unknown' 
