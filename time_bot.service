@@ -1,0 +1,15 @@
+[Unit]
+Description=Telegram Time Bot
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/path/to/time_bot
+Environment=PATH=/path/to/time_bot/venv/bin
+ExecStart=/path/to/time_bot/venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target 
